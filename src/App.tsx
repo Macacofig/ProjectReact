@@ -1,23 +1,27 @@
 import { useEffect, useState } from 'react';
-import CountryCard from './components/CountryCard';
-import CountryDetail from './components/CountryDetail';
-import SearchBar from './components/SearchBar';
-import RegionFilter from './components/RegionFilter';
+import type { Country } from './types/country';
+
+import CountryCard from './Components/CountryCard';
+import CountryDetail from './Components/CountryDetail';
+import SearchBar from './Components/SearchBar';
+import RegionFilter from './Components/RegionFilter';
+
+import './App.css';
 
 export default function App() {
-  const [countries, setCountries] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [filtered, setFiltered] = useState<Country[]>([]);
   const [search, setSearch] = useState('');
   const [region, setRegion] = useState('Todos');
   const [sort, setSort] = useState('');
-  const [selected, setSelected] = useState<any | null>(null);
+  const [selected, setSelected] = useState<Country | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    fetch('https://restcountries.com/v3.1/all')
+    fetch('https://restcountries.com/v3.1/all?fields=name,capital,region,population,flags,languages,currencies,timezones,maps')
       .then(res => res.json())
-      .then(data => {
+      .then((data: Country[]) => {
         setCountries(data);
         setFiltered(data);
         setLoading(false);
@@ -31,19 +35,16 @@ export default function App() {
   useEffect(() => {
     let result = [...countries];
 
-    // búsqueda
     if (search) {
       result = result.filter(c =>
         c.name.common.toLowerCase().includes(search.toLowerCase())
       );
     }
 
-    // filtro región
     if (region !== 'Todos') {
       result = result.filter(c => c.region === region);
     }
 
-    // ordenamiento
     if (sort === 'asc') {
       result.sort((a, b) => a.population - b.population);
     } else if (sort === 'desc') {
@@ -53,33 +54,40 @@ export default function App() {
     setFiltered(result);
   }, [search, region, sort, countries]);
 
-  if (loading) return <p>Cargando...</p>;
-  if (error) return <p>Error al cargar datos</p>;
+  if (loading) return <p className="container">Cargando...</p>;
+  if (error) return <p className="container">Error al cargar datos</p>;
 
   if (selected) {
     return (
-      <CountryDetail country={selected} onBack={() => setSelected(null)} />
+      <CountryDetail
+        country={selected}
+        onBack={() => setSelected(null)}
+      />
     );
   }
 
   return (
-    <div>
-      <h1>Países</h1>
+    <div className="container">
+      <h1 className="header">Países</h1>
+      <p className="results">
+        Resultados: {filtered.length} países
+      </p>
+      <div className="controls">
+        <SearchBar search={search} setSearch={setSearch} />
+        <RegionFilter region={region} setRegion={setRegion} />
 
-      <SearchBar search={search} setSearch={setSearch} />
-      <RegionFilter region={region} setRegion={setRegion} />
+        <select onChange={(e) => setSort(e.target.value)}>
+          <option value="">Ordenar</option>
+          <option value="asc">Población ↑</option>
+          <option value="desc">Población ↓</option>
+        </select>
+      </div>
 
-      <select onChange={(e) => setSort(e.target.value)}>
-        <option value="">Ordenar</option>
-        <option value="asc">Población ↑</option>
-        <option value="desc">Población ↓</option>
-      </select>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))', gap: '1rem' }}>
+      <div className="grid">
         {filtered.map((c, i) => (
           <CountryCard key={i} country={c} onClick={() => setSelected(c)} />
         ))}
       </div>
     </div>
   );
-} 
+}

@@ -1,4 +1,9 @@
-export default function SearchBar({ search, setSearch }: any) {
+type Props = {
+  search: string;
+  setSearch: (value: string) => void;
+};
+
+export default function SearchBar({ search, setSearch }: Props) {
   return (
     <input
       type="text"
