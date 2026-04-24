@@ -1,122 +1,85 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from 'react';
+import CountryCard from './components/CountryCard';
+import CountryDetail from './components/CountryDetail';
+import SearchBar from './components/SearchBar';
+import RegionFilter from './components/RegionFilter';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [countries, setCountries] = useState<any[]>([]);
+  const [filtered, setFiltered] = useState<any[]>([]);
+  const [search, setSearch] = useState('');
+  const [region, setRegion] = useState('Todos');
+  const [sort, setSort] = useState('');
+  const [selected, setSelected] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('https://restcountries.com/v3.1/all')
+      .then(res => res.json())
+      .then(data => {
+        setCountries(data);
+        setFiltered(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err);
+        setLoading(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    let result = [...countries];
+
+    // búsqueda
+    if (search) {
+      result = result.filter(c =>
+        c.name.common.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+
+    // filtro región
+    if (region !== 'Todos') {
+      result = result.filter(c => c.region === region);
+    }
+
+    // ordenamiento
+    if (sort === 'asc') {
+      result.sort((a, b) => a.population - b.population);
+    } else if (sort === 'desc') {
+      result.sort((a, b) => b.population - a.population);
+    }
+
+    setFiltered(result);
+  }, [search, region, sort, countries]);
+
+  if (loading) return <p>Cargando...</p>;
+  if (error) return <p>Error al cargar datos</p>;
+
+  if (selected) {
+    return (
+      <CountryDetail country={selected} onBack={() => setSelected(null)} />
+    );
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div>
+      <h1>Países</h1>
 
-      <div className="ticks"></div>
+      <SearchBar search={search} setSearch={setSearch} />
+      <RegionFilter region={region} setRegion={setRegion} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <select onChange={(e) => setSort(e.target.value)}>
+        <option value="">Ordenar</option>
+        <option value="asc">Población ↑</option>
+        <option value="desc">Población ↓</option>
+      </select>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
-
-export default App
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))', gap: '1rem' }}>
+        {filtered.map((c, i) => (
+          <CountryCard key={i} country={c} onClick={() => setSelected(c)} />
+        ))}
+      </div>
+    </div>
+  );
+} 
